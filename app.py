@@ -95,15 +95,15 @@ def SearchCustomers(query) -> list:
 
 def InsertCustomer(fname, lname, birthdate, address, postalcode, city, country, email, number):
     customer = Customer()
-    customer.first_name = fname
-    customer.last_name = lname
+    customer.first_name = fname.strip()
+    customer.last_name = lname.strip()
     customer.birth_date = birthdate
-    customer.street_address = address
-    customer.postal_number = postalcode
-    customer.city = city
-    customer.country = country
-    customer.mail = email
-    customer.contact_number = number
+    customer.street_address = address.strip()
+    customer.postal_number = postalcode.strip()
+    customer.city = city.strip()
+    customer.country = country.strip()
+    customer.mail = email.strip()
+    customer.contact_number = number.strip()
     db.session.add(customer)
     db.session.commit()
 
@@ -173,7 +173,15 @@ def customers_manage(stdscr):
                 customer = Customer.query.filter_by(id = update_id).first()
                 birthday = customer.birth_date
                 stdscr.clear()
-
+                stdscr.addstr(1,int(width/4), f"First Name: {customer.first_name}")
+                stdscr.addstr(2,int(width/4), f"Last Name: {customer.last_name}")
+                stdscr.addstr(3,int(width/4), f"Birthdate: {customer.birth_date}")
+                stdscr.addstr(4,int(width/4), f"Street Address: {customer.street_address}")
+                stdscr.addstr(5,int(width/4), f"Postal Code: {customer.postal_number}")
+                stdscr.addstr(6,int(width/4), f"City: {customer.city}")
+                stdscr.addstr(7,int(width/4), f"Country: {customer.country}")
+                stdscr.addstr(8,int(width/4), f"E-Mail: {customer.mail}")
+                stdscr.addstr(9,int(width/4), f"Phone Number: {customer.contact_number}")
                 current_row = 1
                 title = " Update chosen customer to "
                 while True:
@@ -204,15 +212,6 @@ def customers_manage(stdscr):
                     stdscr.attron(CYAN)
                     stdscr.addstr(0,int(width/4), old_values_str)
                     stdscr.attroff(CYAN)
-                    stdscr.addstr(1,int(width/4), f"First Name: {customer.first_name}")
-                    stdscr.addstr(2,int(width/4), f"Last Name: {customer.last_name}")
-                    stdscr.addstr(3,int(width/4), f"Birthdate: {customer.birth_date}")
-                    stdscr.addstr(4,int(width/4), f"Street Address: {customer.street_address}")
-                    stdscr.addstr(5,int(width/4), f"Postal Code: {customer.postal_number}")
-                    stdscr.addstr(6,int(width/4), f"City: {customer.city}")
-                    stdscr.addstr(7,int(width/4), f"Country: {customer.country}")
-                    stdscr.addstr(8,int(width/4), f"E-Mail: {customer.mail}")
-                    stdscr.addstr(9,int(width/4), f"Phone Number: {customer.contact_number}")
                     sub_menu_items = ["First Name: ", "Last Name: ", "Birthdate: ", "Address: ", "Postal Code: ", "City: ","Country: ", "E-Mail: ", "Contact Number: ", "Update", "Back"]
                     for idx, element in enumerate(sub_menu_items):
                         y = 1 + idx
@@ -232,12 +231,12 @@ def customers_manage(stdscr):
                             first_name_box = Textbox(curses.newwin(1,30, 1, int(width/2+6)))
                             first_name_box.edit()
                             new_first_name = first_name_box.gather()
-                            customer.first_name = new_first_name
+                            customer.first_name = new_first_name.strip()
                         if current_row == 2:
                             last_name_box = Textbox(curses.newwin(1,30, 2, int(width/2+5)))
                             last_name_box.edit()
                             new_last_name = last_name_box.gather()
-                            customer.last_name = new_last_name
+                            customer.last_name = new_last_name.strip()
                         if current_row == 3:
                             day_box = Textbox(curses.newwin(1,3, 3,int(width/2+13)))
                             month_box = Textbox(curses.newwin(1,3, 3,int(width/2+10)))
@@ -247,8 +246,6 @@ def customers_manage(stdscr):
                                 year = year_box.gather()
                                 year = year.replace(" ", "")
                                 if year.isdigit() == True and len(year) == 4:
-                                    bdate_str = f"{year}-{month}-{day}"
-                                    customer.birth_date = bdate_str
                                     break
                                 else:
                                     footer = "A year has to be 4 numbers ԅ(≖‿≖ԅ)"
@@ -277,6 +274,8 @@ def customers_manage(stdscr):
                                 day = day_box.gather()
                                 day = day.replace(" ", "")
                                 if day.isdigit() == True:
+                                    bdate_str = f"{year}-{month}-{day}"
+                                    customer.birth_date = bdate_str
                                     break
                                 else:
                                     footer = "A day has to be a number ԅ(≖‿≖ԅ)"
@@ -290,35 +289,35 @@ def customers_manage(stdscr):
                             address_box = Textbox(curses.newwin(1,40, 4, int(width/2+4)))
                             address_box.edit()
                             new_address = address_box.gather()
-                            customer.street_address = new_address
+                            customer.street_address = new_address.strip()
                         if current_row == 5:
                             postal_code_box = Textbox(curses.newwin(1,11, 5, int(width/2+6)))
                             postal_code_box.edit()
                             new_postal = postal_code_box.gather()
-                            customer.postal_number = new_postal
+                            customer.postal_number = new_postal.strip()
                         if current_row == 6:
                             city_box = Textbox(curses.newwin(1,30, 6, int(width/2+3)))
                             city_box.edit()
                             new_city = city_box.gather()
-                            customer.city = new_city
+                            customer.city = new_city.strip()
                         if current_row == 7:
                             country_box = Textbox(curses.newwin(1,20, 7, int(width/2+4)))
                             country_box.edit()
-                            new_country = country_box()
-                            customer.country = new_country
+                            new_country = country_box.gather()
+                            customer.country = new_country.strip()
                         if current_row == 8:
                             mail_box = Textbox(curses.newwin(1,40, 8, int(width/2+4)))
                             mail_box.edit()
                             new_mail = mail_box.gather()
-                            customer.mail = new_mail
+                            customer.mail = new_mail.strip()
                         if current_row == 9:
                             number_box = Textbox(curses.newwin(1,15, 9, int(width/2+8)))
                             number_box.edit()
                             new_number = number_box.gather()
-                            customer.contact_number = new_number
+                            customer.contact_number = new_number.strip()
                         if current_row == 10:
                             bdate_str = f"{birthday}"
-                            if day.isdigit() == True:
+                            if year.isdigit() == True:
                                 try:
                                     new_birthday = datetime.strptime(f"{day}-{month}-{year}", "%d-%m-%Y").date
                                 except ValueError:
