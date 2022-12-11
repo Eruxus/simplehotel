@@ -187,6 +187,10 @@ def customers_manage(stdscr):
                 while True:
                     stdscr.attron(CYAN)
                     stdscr.addstr(height-(height), int((width/2)-(len(title)/2)) , title)
+                    stdscr.attron(BLACK_CYAN)
+                    stdscr.addstr(height-1, 0, " " * (width-1))
+                    stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                    stdscr.attroff(BLACK_CYAN)
                     try:
                         if not day:
                             pass
@@ -208,7 +212,7 @@ def customers_manage(stdscr):
                     stdscr.attroff(CYAN)
 
                     # Strings for preview
-                    old_values_str = "Final Result"
+                    old_values_str = "Old Values"
                     stdscr.attron(CYAN)
                     stdscr.addstr(0,int(width/4), old_values_str)
                     stdscr.attroff(CYAN)
