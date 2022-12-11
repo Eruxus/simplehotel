@@ -121,14 +121,14 @@ def customers_manage(stdscr):
     search_tooltip = "Here you can search for customers by their last name"
     footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
     stdscr.attron(CYAN)
-    stdscr.addstr(height-(height), int((width/2)-(len(search_tooltip)/2)) , search_tooltip)
+    stdscr.addstr(height-(height), 1, search_tooltip)
     stdscr.attroff(CYAN)
     stdscr.attron(BLACK_CYAN)
     stdscr.addstr(height-1, 0, " " * (width-1))
-    stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+    stdscr.addstr(height-1, 1, footer)
     stdscr.attroff(BLACK_CYAN)
     stdscr.refresh()
-    search_box = Textbox(curses.newwin(1, 30, 1, int(width/2-4)))
+    search_box = Textbox(curses.newwin(1, 30, 1, 1))
     search_box.edit()
     search_query = search_box.gather()
     search_query = search_query.strip()
@@ -139,25 +139,25 @@ def customers_manage(stdscr):
         curses.curs_set(0)
         
         # Strings
-        title = " Your search results "
+        title = "Your search results "
         footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
 
         stdscr.attron(CYAN)
-        stdscr.addstr(height-(height), int((width/2)-(len(title)/2)) , title)
+        stdscr.addstr(height-(height), 1 , title)
         stdscr.attroff(CYAN)
 
         stdscr.attron(BLACK_CYAN)
         stdscr.addstr(height-1, 0, " " * (width-1))
-        stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+        stdscr.addstr(height-1, 1, footer)
         stdscr.attroff(BLACK_CYAN)
         for idx, element in enumerate(main_menu_items):
             y = 1 + idx
             if y == current_row:
                 stdscr.attron(BLACK_CYAN)
-                stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                stdscr.addstr(y, 1, element)
                 stdscr.attroff(BLACK_CYAN)
             else:
-                stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                stdscr.addstr(y, 1, element)
 
         key = stdscr.getch()
         if key == curses.KEY_UP and current_row > 1:
@@ -173,23 +173,23 @@ def customers_manage(stdscr):
                 customer = Customer.query.filter_by(id = update_id).first()
                 birthday = customer.birth_date
                 stdscr.clear()
-                stdscr.addstr(1,int(width/4), f"First Name: {customer.first_name}")
-                stdscr.addstr(2,int(width/4), f"Last Name: {customer.last_name}")
-                stdscr.addstr(3,int(width/4), f"Birthdate: {customer.birth_date}")
-                stdscr.addstr(4,int(width/4), f"Street Address: {customer.street_address}")
-                stdscr.addstr(5,int(width/4), f"Postal Code: {customer.postal_number}")
-                stdscr.addstr(6,int(width/4), f"City: {customer.city}")
-                stdscr.addstr(7,int(width/4), f"Country: {customer.country}")
-                stdscr.addstr(8,int(width/4), f"E-Mail: {customer.mail}")
-                stdscr.addstr(9,int(width/4), f"Phone Number: {customer.contact_number}")
+                stdscr.addstr(1,abs(int(width/2)), f"First Name: {customer.first_name}")
+                stdscr.addstr(2,abs(int(width/2)), f"Last Name: {customer.last_name}")
+                stdscr.addstr(3,abs(int(width/2)), f"Birthdate: {customer.birth_date}")
+                stdscr.addstr(4,abs(int(width/2)), f"Street Address: {customer.street_address}")
+                stdscr.addstr(5,abs(int(width/2)), f"Postal Code: {customer.postal_number}")
+                stdscr.addstr(6,abs(int(width/2)), f"City: {customer.city}")
+                stdscr.addstr(7,abs(int(width/2)), f"Country: {customer.country}")
+                stdscr.addstr(8,abs(int(width/2)), f"E-Mail: {customer.mail}")
+                stdscr.addstr(9,abs(int(width/2)), f"Phone Number: {customer.contact_number}")
                 current_row = 1
-                title = " Update chosen customer to "
+                title = "Update chosen customer to"
                 while True:
                     stdscr.attron(CYAN)
-                    stdscr.addstr(height-(height), int((width/2)-(len(title)/2)) , title)
+                    stdscr.addstr(height-(height), 1 , title)
                     stdscr.attron(BLACK_CYAN)
                     stdscr.addstr(height-1, 0, " " * (width-1))
-                    stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                    stdscr.addstr(height-1, 1, footer)
                     stdscr.attroff(BLACK_CYAN)
                     try:
                         if not day:
@@ -210,21 +210,19 @@ def customers_manage(stdscr):
                         stdscr.addstr(3,int(width/2+5), "yyyy")
                         year = ""
                     stdscr.attroff(CYAN)
-
-                    # Strings for preview
                     old_values_str = "Old Values"
                     stdscr.attron(CYAN)
-                    stdscr.addstr(0,int(width/4), old_values_str)
+                    stdscr.addstr(0,abs(int(width/2)), old_values_str)
                     stdscr.attroff(CYAN)
                     sub_menu_items = ["First Name: ", "Last Name: ", "Birthdate: ", "Address: ", "Postal Code: ", "City: ","Country: ", "E-Mail: ", "Contact Number: ", "Update", "Back"]
                     for idx, element in enumerate(sub_menu_items):
                         y = 1 + idx
                         if y == current_row:
                             stdscr.attron(BLACK_CYAN)
-                            stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                            stdscr.addstr(y, 1, element)
                             stdscr.attroff(BLACK_CYAN)
                         else:
-                            stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                            stdscr.addstr(y, 1, element)
                     key = stdscr.getch()
                     if key == curses.KEY_UP and current_row > 1:
                         current_row = current_row - 1
@@ -232,19 +230,19 @@ def customers_manage(stdscr):
                         current_row = current_row + 1
                     elif key == 10:
                         if current_row == 1:
-                            first_name_box = Textbox(curses.newwin(1,30, 1, int(width/2+6)))
+                            first_name_box = Textbox(curses.newwin(1,30, 1, 13))
                             first_name_box.edit()
                             new_first_name = first_name_box.gather()
                             customer.first_name = new_first_name.strip()
                         if current_row == 2:
-                            last_name_box = Textbox(curses.newwin(1,30, 2, int(width/2+5)))
+                            last_name_box = Textbox(curses.newwin(1,30, 2, 12))
                             last_name_box.edit()
                             new_last_name = last_name_box.gather()
                             customer.last_name = new_last_name.strip()
                         if current_row == 3:
-                            day_box = Textbox(curses.newwin(1,3, 3,int(width/2+13)))
-                            month_box = Textbox(curses.newwin(1,3, 3,int(width/2+10)))
-                            year_box = Textbox(curses.newwin(1,5, 3,int(width/2+5)))
+                            day_box = Textbox(curses.newwin(1,3, 3,20))
+                            month_box = Textbox(curses.newwin(1,3, 3,17))
+                            year_box = Textbox(curses.newwin(1,5, 3,12))
                             while True:
                                 year_box.edit()
                                 year = year_box.gather()
@@ -255,7 +253,7 @@ def customers_manage(stdscr):
                                     footer = "A year has to be 4 numbers ԅ(≖‿≖ԅ)"
                                     stdscr.attron(BLACK_CYAN)
                                     stdscr.addstr(height-1, 0, " " * (width-1))
-                                    stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                                    stdscr.addstr(height-1, 1, footer)
                                     stdscr.attroff(BLACK_CYAN)
                                     stdscr.refresh()
                                     continue
@@ -269,7 +267,7 @@ def customers_manage(stdscr):
                                     footer = "A month has to be a number ԅ(≖‿≖ԅ)"
                                     stdscr.attron(BLACK_CYAN)
                                     stdscr.addstr(height-1, 0, " " * (width-1))
-                                    stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                                    stdscr.addstr(height-1, 1, footer)
                                     stdscr.attroff(BLACK_CYAN)
                                     stdscr.refresh()
                                     continue
@@ -285,37 +283,37 @@ def customers_manage(stdscr):
                                     footer = "A day has to be a number ԅ(≖‿≖ԅ)"
                                     stdscr.attron(BLACK_CYAN)
                                     stdscr.addstr(height-1, 0, " " * (width-1))
-                                    stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                                    stdscr.addstr(height-1, 1, footer)
                                     stdscr.attroff(BLACK_CYAN)
                                     stdscr.refresh()
                                     continue
                         if current_row == 4:
-                            address_box = Textbox(curses.newwin(1,40, 4, int(width/2+4)))
+                            address_box = Textbox(curses.newwin(1,40, 4, 10))
                             address_box.edit()
                             new_address = address_box.gather()
                             customer.street_address = new_address.strip()
                         if current_row == 5:
-                            postal_code_box = Textbox(curses.newwin(1,11, 5, int(width/2+6)))
+                            postal_code_box = Textbox(curses.newwin(1,11, 5, 14))
                             postal_code_box.edit()
                             new_postal = postal_code_box.gather()
                             customer.postal_number = new_postal.strip()
                         if current_row == 6:
-                            city_box = Textbox(curses.newwin(1,30, 6, int(width/2+3)))
+                            city_box = Textbox(curses.newwin(1,30, 6, 7))
                             city_box.edit()
                             new_city = city_box.gather()
                             customer.city = new_city.strip()
                         if current_row == 7:
-                            country_box = Textbox(curses.newwin(1,20, 7, int(width/2+4)))
+                            country_box = Textbox(curses.newwin(1,20, 7, 10))
                             country_box.edit()
                             new_country = country_box.gather()
                             customer.country = new_country.strip()
                         if current_row == 8:
-                            mail_box = Textbox(curses.newwin(1,40, 8, int(width/2+4)))
+                            mail_box = Textbox(curses.newwin(1,40, 8, 9))
                             mail_box.edit()
                             new_mail = mail_box.gather()
                             customer.mail = new_mail.strip()
                         if current_row == 9:
-                            number_box = Textbox(curses.newwin(1,15, 9, int(width/2+8)))
+                            number_box = Textbox(curses.newwin(1,15, 9, 17))
                             number_box.edit()
                             new_number = number_box.gather()
                             customer.contact_number = new_number.strip()
@@ -328,7 +326,7 @@ def customers_manage(stdscr):
                                     footer = "Are you sure about this date? ԅ(≖‿≖ԅ)"
                                     stdscr.attron(BLACK_CYAN)
                                     stdscr.addstr(height-1, 0, " " * (width-1))
-                                    stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                                    stdscr.addstr(height-1, 1, footer)
                                     stdscr.attroff(BLACK_CYAN)
                                     current_row = 3
                                     continue
@@ -336,7 +334,7 @@ def customers_manage(stdscr):
                             stdscr.attron(BLACK_CYAN)
                             footer = "Update SUCCESSFUL! (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧"
                             stdscr.addstr(height-1, 0, " " * (width-1))
-                            stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                            stdscr.addstr(height-1, 1, footer)
                             stdscr.attroff(BLACK_CYAN)
                             stdscr.refresh()
                             time.sleep(3)
@@ -364,7 +362,7 @@ def customers_register(stdscr):
         height, width = stdscr.getmaxyx()
 
         # Strings
-        title = " Please fill the form to register a new customer "
+        title = "Please fill the form to register a new customer "
         try:
             if not footer:
                 pass
@@ -372,30 +370,30 @@ def customers_register(stdscr):
             footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
 
         stdscr.attron(CYAN)
-        stdscr.addstr(height-(height), abs(int((width/2)-(len(title)/2))) , title)
+        stdscr.addstr(height-(height), 1 , title)
         try:
             if not day:
                 pass
         except UnboundLocalError:
-            stdscr.addstr(3,int(width/2+13), "dd")
+            stdscr.addstr(3,20, "dd")
             day = ""
         try:
             if not month:
                 pass
         except UnboundLocalError:
-            stdscr.addstr(3,int(width/2+10), "mm")
+            stdscr.addstr(3,17, "mm")
             month = ""
         try:
             if not year:
                 pass
         except UnboundLocalError:
-            stdscr.addstr(3,int(width/2+5), "yyyy")
+            stdscr.addstr(3,12, "yyyy")
             year = ""
         stdscr.attroff(CYAN)
 
         stdscr.attron(BLACK_CYAN)
         stdscr.addstr(height-1, 0, " " * (width-1))
-        stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+        stdscr.addstr(height-1, 1, footer)
         stdscr.attroff(BLACK_CYAN)
         
         main_menu_items = ["First Name: ", "Last Name: ", "Birthdate: ", "Address: ", "Postal Code: ", "City: ","Country: ", "E-Mail: ", "Contact Number: ", "Register", "Back"]
@@ -403,10 +401,10 @@ def customers_register(stdscr):
             y = 1 + idx
             if y == current_row:
                 stdscr.attron(BLACK_CYAN)
-                stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                stdscr.addstr(y, 1, element)
                 stdscr.attroff(BLACK_CYAN)
             else:
-                stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                stdscr.addstr(y, 1, element)
 
         key = stdscr.getch()
         if key == curses.KEY_UP and current_row > 1:
@@ -415,15 +413,15 @@ def customers_register(stdscr):
             current_row = current_row + 1
         elif key == 10:
             if current_row == 1:
-                first_name_box = Textbox(curses.newwin(1,30, 1, int(width/2+6)))
+                first_name_box = Textbox(curses.newwin(1,30, 1, 13))
                 first_name_box.edit()
             if current_row == 2:
-                last_name_box = Textbox(curses.newwin(1,30, 2, int(width/2+5)))
+                last_name_box = Textbox(curses.newwin(1,30, 2, 12))
                 last_name_box.edit()
             if current_row == 3:
-                day_box = Textbox(curses.newwin(1,3, 3,int(width/2+13)))
-                month_box = Textbox(curses.newwin(1,3, 3,int(width/2+10)))
-                year_box = Textbox(curses.newwin(1,5, 3,int(width/2+5)))
+                day_box = Textbox(curses.newwin(1,3, 3, 20))
+                month_box = Textbox(curses.newwin(1,3, 3, 17))
+                year_box = Textbox(curses.newwin(1,5, 3, 12))
                 while True:
                     year_box.edit()
                     year = year_box.gather()
@@ -468,22 +466,22 @@ def customers_register(stdscr):
                         stdscr.refresh()
                         continue
             if current_row == 4:
-                address_box = Textbox(curses.newwin(1,40, 4, int(width/2+4)))
+                address_box = Textbox(curses.newwin(1,40, 4, 10))
                 address_box.edit()
             if current_row == 5:
-                postal_code_box = Textbox(curses.newwin(1,11, 5, int(width/2+6)))
+                postal_code_box = Textbox(curses.newwin(1,11, 5, 14))
                 postal_code_box.edit()
             if current_row == 6:
-                city_box = Textbox(curses.newwin(1,30, 6, int(width/2+3)))
+                city_box = Textbox(curses.newwin(1,30, 6, 7))
                 city_box.edit()
             if current_row == 7:
-                country_box = Textbox(curses.newwin(1,20, 7, int(width/2+4)))
+                country_box = Textbox(curses.newwin(1,20, 7, 10))
                 country_box.edit()
             if current_row == 8:
-                mail_box = Textbox(curses.newwin(1,40, 8, int(width/2+4)))
+                mail_box = Textbox(curses.newwin(1,40, 8, 9))
                 mail_box.edit()
             if current_row == 9:
-                number_box = Textbox(curses.newwin(1,15, 9, int(width/2+8)))
+                number_box = Textbox(curses.newwin(1,15, 9, 17))
                 number_box.edit()
             if current_row == 10:
                 try:
@@ -547,7 +545,7 @@ def customers_register(stdscr):
                 stdscr.attron(BLACK_CYAN)
                 footer = "Registration SUCCESSFUL! (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧"
                 stdscr.addstr(height-1, 0, " " * (width-1))
-                stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                stdscr.addstr(height-1, 1, footer)
                 stdscr.attroff(BLACK_CYAN)
                 stdscr.refresh()
                 time.sleep(3)
@@ -572,16 +570,16 @@ def customers(stdscr):
         height, width = stdscr.getmaxyx()
 
         # Strings
-        title = " Welcome to Manage Customers window, here you can register new customers or update details about existing ones "
+        title = "Welcome to Manage Customers window, here you can register new customers or update details about existing ones "
         footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
 
         stdscr.attron(CYAN)
-        stdscr.addstr(height-(height), abs(int((width/2)-(len(title)/2))) , title)
+        stdscr.addstr(height-(height), 1 , title)
         stdscr.attroff(CYAN)
 
         stdscr.attron(BLACK_CYAN)
         stdscr.addstr(height-1, 0, " " * (width-1))
-        stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+        stdscr.addstr(height-1, 1, footer)
         stdscr.attroff(BLACK_CYAN)
         
         main_menu_items = ["Register a customer", "Update a customer", "Back"]
@@ -589,10 +587,10 @@ def customers(stdscr):
             y = 1 + idx
             if y == current_row:
                 stdscr.attron(BLACK_CYAN)
-                stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                stdscr.addstr(y, 1, element)
                 stdscr.attroff(BLACK_CYAN)
             else:
-                stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                stdscr.addstr(y, 1, element)
 
         key = stdscr.getch()
         if key == curses.KEY_UP and current_row > 1:
@@ -624,16 +622,16 @@ def main(stdscr):
         height, width = stdscr.getmaxyx()
 
         # Strings
-        title = " Welcome to Pythonic Hotel Management software! Have a great day at work "
+        title = "Welcome to Pythonic Hotel Management software! Have a great day at work"
         footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
 
         stdscr.attron(CYAN)
-        stdscr.addstr(height-(height), int((width/2)-(len(title)/2)) , title)
+        stdscr.addstr(height-(height), 1 , title)
         stdscr.attroff(CYAN)
 
         stdscr.attron(BLACK_CYAN)
         stdscr.addstr(height-1, 0, " " * (width-1))
-        stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+        stdscr.addstr(height-1, 1, footer)
         stdscr.attroff(BLACK_CYAN)
         
         main_menu_items = ["Manage Customers", "Manage Reservations", "Exit"]
@@ -641,10 +639,11 @@ def main(stdscr):
             y = 1 + idx
             if y == current_row:
                 stdscr.attron(BLACK_CYAN)
-                stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                stdscr.addstr(y, 1, element)
                 stdscr.attroff(BLACK_CYAN)
             else:
-                stdscr.addstr(y, int((width/2)-len(element)/2), element)
+                stdscr.addstr(y, 1, element)
+                
 
         key = stdscr.getch()
         if key == curses.KEY_UP and current_row > 1:
