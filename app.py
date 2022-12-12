@@ -85,12 +85,27 @@ def CreateRooms():
         db.session.commit()
 
 # Functions for handling logic
+def SearchRoom(checkin, checkout) -> list:
+    room_query = Room.query.all()
+    reservation_query = Reservation.query.all()
+    free = True
+    room_list = []
+    for x in room_query:
+        for y in reservation_query:
+            if y.id == x.id and (y.check_in <= checkin <= y.check_out or y.check_in <= checkout <= y.check_out):
+                free = False
+            else:
+                free = True
+        if free == True:
+            room_list.append(f"{x.room_name} ;{x.id}")
+    return room_list
+
 def SearchCustomers(query) -> list:
     listan = []
     result = Customer.query.filter(Customer.last_name.contains(query)).all()
     for x in result:
         if f"{x.last_name}".lower() == query.lower():
-            listan.append(f"{x.first_name} {x.last_name} id{x.id}")
+            listan.append(f"{x.first_name} {x.last_name} ;{x.id}")
     return listan
 
 def InsertCustomer(fname, lname, birthdate, address, postalcode, city, country, email, number):
@@ -301,23 +316,135 @@ def make_reservation(stdscr):
                         continue
             if current_row == 3:
                 try:
-                    checkin_date = datetime.strptime(f"{checkin_day}-{checkin_month}-{checkin_year}", "%d-%m-%Y").date
+                    checkin_date = datetime.strptime(f"{checkin_day}-{checkin_month}-{checkin_year}", "%d-%m-%Y").date()
                 except ValueError:
                     footer = "Are you sure about this date? ԅ(≖‿≖ԅ)"
                     current_row = 1
                     continue
                 checkin_date_str = f"{checkin_year}-{checkin_month}-{checkin_day}"
                 try:
-                    checkout_date = datetime.strptime(f"{checkout_day}-{checkout_month}-{checkout_year}", "%d-%m-%Y").date
+                    checkout_date = datetime.strptime(f"{checkout_day}-{checkout_month}-{checkout_year}", "%d-%m-%Y").date()
                 except ValueError:
                     footer = "Are you sure about this date? ԅ(≖‿≖ԅ)"
                     current_row = 2
                     continue
                 checkout_date_str = f"{checkout_year}-{checkout_month}-{checkout_day}"
-                if checkin_date() >= checkout_date():
+                if checkin_date >= checkout_date:
                     footer = "Check for date paradox...(~_~;)"
                     continue
-            if current_row == len(main_menu_items):
+                available_rooms = SearchRoom(checkin_date, checkout_date)
+                available_rooms.append("Back")
+                key = 0
+                current_row = 1
+                stdscr.clear()
+                stdscr.refresh()
+
+                curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+                curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_CYAN)
+                CYAN = curses.color_pair(1)
+                BLACK_CYAN = curses.color_pair(2)
+
+                while True:
+                    curses.curs_set(0)
+                    height, width = stdscr.getmaxyx()
+
+                    # Strings
+                    title = "Those rooms are available! "
+                    footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
+
+                    stdscr.attron(CYAN)
+                    stdscr.addstr(height-(height), 1 , title)
+                    stdscr.attroff(CYAN)
+
+                    stdscr.attron(BLACK_CYAN)
+                    stdscr.addstr(height-1, 0, " " * (width-1))
+                    stdscr.addstr(height-1, 1, footer)
+                    stdscr.attroff(BLACK_CYAN)
+                    
+                    for idx, element in enumerate(available_rooms):
+                        y = 1 + idx
+                        if y == current_row:
+                            stdscr.attron(BLACK_CYAN)
+                            stdscr.addstr(y, 1, element)
+                            stdscr.attroff(BLACK_CYAN)
+                        else:
+                            stdscr.addstr(y, 1, element)
+
+                    key = stdscr.getch()
+                    if key == curses.KEY_UP and current_row > 1:
+                        current_row = current_row - 1
+                    elif key == curses.KEY_DOWN and current_row < len(available_rooms):
+                        current_row = current_row + 1
+                    elif key == 10:
+                        if current_row != len(available_rooms):
+                            ############################################################
+                            active_room = available_rooms[current_row-1]
+                            parts = active_room.split(";")
+                            room_id = parts[-1]
+                            stdscr.clear()
+                            current_row = 1
+                            extra = 0
+                            stdscr.addstr(1,1, f"{room_id}")
+                            stdscr.refresh()
+                            reservation_last_name = Textbox(curses.newwin(1,30, 1, 13))
+                            footer = "You are almost there! (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧"
+                            while True:
+                                title = "Choose customer and extra beds"
+
+                                stdscr.attron(CYAN)
+                                stdscr.addstr(height-(height), 1 , title)
+                                stdscr.attroff(CYAN)
+
+                                stdscr.attron(BLACK_CYAN)
+                                stdscr.addstr(height-1, 0, " " * (width-1))
+                                stdscr.addstr(height-1, 1, footer)
+                                stdscr.attroff(BLACK_CYAN)
+                                if room_id == "1":
+                                    final_menu_items = ["Choose Customer: ", "No extra beds available for this room", "Reserve!", "Back"]
+                                else:
+                                    final_menu_items = ["Choose Customer: ", "Extra beds: ", "Reserve!", "Back"]
+                                for idx, element in enumerate(final_menu_items):
+                                    y = 1 + idx
+                                    if y == current_row:
+                                        stdscr.attron(BLACK_CYAN)
+                                        stdscr.addstr(y, 1, element)
+                                        stdscr.attroff(BLACK_CYAN)
+                                    else:
+                                        stdscr.addstr(y, 1, element)
+
+                                key = stdscr.getch()
+                                if key == curses.KEY_UP and current_row > 1:
+                                    current_row = current_row - 1
+                                elif key == curses.KEY_DOWN and current_row < len(final_menu_items):
+                                    current_row = current_row + 1
+                                elif key == curses.KEY_RIGHT and current_row == 2:
+                                    if room_id == "2":
+                                        if extra == 0:
+                                            extra = extra + 1
+                                            stdscr.addstr(2, 13, f"{extra}")
+                                    if room_id == "3":
+                                        if extra < 2:
+                                            extra = extra + 1
+                                            stdscr.addstr(2, 13, f"{extra}")                                        
+                                elif key == curses.KEY_LEFT and current_row == 2:
+                                    if room_id == "2":
+                                        if extra == 1:
+                                            extra = extra - 1
+                                            stdscr.addstr(2, 13, f"{extra}")
+                                    if room_id == "3":
+                                        if extra > 0:
+                                            extra = extra - 1
+                                            stdscr.addstr(2, 13, f"{extra}")
+                                elif key == 10:
+                                    if current_row == 1:
+                                        pass
+                                    if current_row == 3:
+                                        pass
+                                    if current_row == 4:
+                                        wrapper(main)
+                        if current_row == len(available_rooms):
+                            wrapper(reservations)
+            if current_row == 4:
                 wrapper(reservations)
         stdscr.refresh()
 
@@ -454,9 +581,8 @@ def customers_manage(stdscr):
         elif key == 10:
             if current_row != len(main_menu_items):
                 active = main_menu_items[current_row-1]
-                parts = active.split("id")
+                parts = active.split(";")
                 update_id = parts[-1]
-                customer = ""
                 customer = Customer.query.filter_by(id = update_id).first()
                 birthday = customer.birth_date
                 stdscr.clear()
