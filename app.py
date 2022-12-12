@@ -1,7 +1,7 @@
 # Immports for curses
 import curses
 from curses import wrapper
-from curses.textpad import Textbox
+from curses.textpad import Textbox, rectangle
 # Imports for flask
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -39,8 +39,8 @@ class Room(db.Model):
 
 class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    check_in = db.Column(db.DateTime, unique=False, nullable=False)
-    check_out = db.Column(db.DateTime, unique=False, nullable=False)
+    check_in = db.Column(db.Date, unique=False, nullable=False)
+    check_out = db.Column(db.Date, unique=False, nullable=False)
     extra_beds = db.Column(db.Integer, unique=False, nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
@@ -108,6 +108,293 @@ def InsertCustomer(fname, lname, birthdate, address, postalcode, city, country, 
     db.session.commit()
 
 # Menu system
+def make_reservation(stdscr):
+    key = 0
+    current_row = 1
+    stdscr.clear()
+    stdscr.refresh()
+
+    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    CYAN = curses.color_pair(1)
+    BLACK_CYAN = curses.color_pair(2)
+
+    checkin_day_box = Textbox(curses.newwin(1,3, 1, 32))
+    checkin_month_box = Textbox(curses.newwin(1,3, 1, 29))
+    checkin_year_box = Textbox(curses.newwin(1,5, 1, 24))
+    checkout_day_box = Textbox(curses.newwin(1,3, 2, 33))
+    checkout_month_box = Textbox(curses.newwin(1,3, 2, 30))
+    checkout_year_box = Textbox(curses.newwin(1,5, 2, 25))
+
+    footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
+
+    while True:
+        curses.curs_set(0)
+        height, width = stdscr.getmaxyx()
+
+        stdscr.attron(CYAN)
+        try:
+            if not checkin_day:
+                pass
+        except UnboundLocalError:
+            stdscr.addstr(1,32, "dd")
+            checkin_day = ""
+        try:
+            if not checkin_month:
+                pass
+        except UnboundLocalError:
+            stdscr.addstr(1,29, "mm")
+            checkin_month = ""
+        try:
+            if not checkin_year:
+                pass
+        except UnboundLocalError:
+            stdscr.addstr(1,24, "yyyy")
+            checkin_year = ""
+        try:
+            if not checkout_day:
+                pass
+        except UnboundLocalError:
+            stdscr.addstr(2,33, "dd")
+            checkout_day = ""
+        try:
+            if not checkout_month:
+                pass
+        except UnboundLocalError:
+            stdscr.addstr(2,30, "mm")
+            checkout_month = ""
+        try:
+            if not checkout_year:
+                pass
+        except UnboundLocalError:
+            stdscr.addstr(2,25, "yyyy")
+            checkout_year = ""
+        stdscr.attroff(CYAN)
+
+        # Strings
+        title = "Please choose what customer's desired check in and out dates"
+
+        stdscr.attron(CYAN)
+        stdscr.addstr(height-(height), 1 , title)
+        stdscr.attroff(CYAN)
+
+        stdscr.attron(BLACK_CYAN)
+        stdscr.addstr(height-1, 0, " " * (width-1))
+        stdscr.addstr(height-1, 1, footer)
+        stdscr.attroff(BLACK_CYAN)
+        
+        main_menu_items = ["Desired check-in date: ", "Desired check-out date: ", "Search rooms", "Back"]
+        for idx, element in enumerate(main_menu_items):
+            y = 1 + idx
+            if y == current_row:
+                stdscr.attron(BLACK_CYAN)
+                stdscr.addstr(y, 1, element)
+                stdscr.attroff(BLACK_CYAN)
+            else:
+                stdscr.addstr(y, 1, element)
+
+        key = stdscr.getch()
+        if key == curses.KEY_UP and current_row > 1:
+            current_row = current_row - 1
+        elif key == curses.KEY_DOWN and current_row < len(main_menu_items):
+            current_row = current_row + 1
+        elif key == 10:
+            if current_row == 1:
+                while True:
+                    curses.curs_set(1)
+                    checkin_year_box.edit()
+                    curses.curs_set(0)
+                    checkin_year = checkin_year_box.gather()
+                    checkin_year = checkin_year.strip()
+                    if checkin_year.isdigit() == True and len(checkin_year) == 4:
+                        break
+                    else:
+                        footer = "A year has to be 4 numbers ԅ(≖‿≖ԅ)"
+                        stdscr.attron(BLACK_CYAN)
+                        stdscr.addstr(height-1, 0, " " * (width-1))
+                        stdscr.addstr(height-1, 1, footer)
+                        stdscr.attroff(BLACK_CYAN)
+                        stdscr.refresh()
+                        continue
+                while True:
+                    curses.curs_set(1)
+                    checkin_month_box.edit()
+                    curses.curs_set(0)
+                    checkin_month = checkin_month_box.gather()
+                    checkin_month = checkin_month.strip()
+                    if checkin_month.isdigit() == True:
+                        break
+                    else:
+                        footer = "A month has to be a number ԅ(≖‿≖ԅ)"
+                        stdscr.attron(BLACK_CYAN)
+                        stdscr.addstr(height-1, 0, " " * (width-1))
+                        stdscr.addstr(height-1, 1, footer)
+                        stdscr.attroff(BLACK_CYAN)
+                        stdscr.refresh()
+                        continue
+                while True:
+                    curses.curs_set(1)
+                    checkin_day_box.edit()
+                    curses.curs_set(0)
+                    checkin_day = checkin_day_box.gather()
+                    checkin_day = checkin_day.strip()
+                    if checkin_day.isdigit() == True:
+                        footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ You should have some yummy coffee during break!"
+                        break
+                    else:
+                        footer = "A day has to be a number ԅ(≖‿≖ԅ)"
+                        stdscr.attron(BLACK_CYAN)
+                        stdscr.addstr(height-1, 0, " " * (width-1))
+                        stdscr.addstr(height-1, 1, footer)
+                        stdscr.attroff(BLACK_CYAN)
+                        stdscr.refresh()
+                        continue
+            if current_row == 2:
+                while True:
+                    curses.curs_set(1)
+                    checkout_year_box.edit()
+                    curses.curs_set(0)
+                    checkout_year = checkout_year_box.gather()
+                    checkout_year = checkout_year.strip()
+                    if checkout_year.isdigit() == True and len(checkout_year) == 4:
+                        break
+                    else:
+                        footer = "A year has to be 4 numbers ԅ(≖‿≖ԅ)"
+                        stdscr.attron(BLACK_CYAN)
+                        stdscr.addstr(height-1, 0, " " * (width-1))
+                        stdscr.addstr(height-1, 1, footer)
+                        stdscr.attroff(BLACK_CYAN)
+                        stdscr.refresh()
+                        continue
+                while True:
+                    curses.curs_set(1)
+                    checkout_month_box.edit()
+                    curses.curs_set(0)
+                    checkout_month = checkout_month_box.gather()
+                    checkout_month = checkout_month.strip()
+                    if checkout_month.isdigit() == True:
+                        break
+                    else:
+                        footer = "A month has to be a number ԅ(≖‿≖ԅ)"
+                        stdscr.attron(BLACK_CYAN)
+                        stdscr.addstr(height-1, 0, " " * (width-1))
+                        stdscr.addstr(height-1, 1, footer)
+                        stdscr.attroff(BLACK_CYAN)
+                        stdscr.refresh()
+                        continue
+                while True:
+                    curses.curs_set(1)
+                    checkout_day_box.edit()
+                    curses.curs_set(0)
+                    checkout_day = checkout_day_box.gather()
+                    checkout_day = checkout_day.strip()
+                    if checkout_day.isdigit() == True:
+                        footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ You should have some yummy coffee during break!"
+                        break
+                    else:
+                        footer = "A day has to be a number ԅ(≖‿≖ԅ)"
+                        stdscr.attron(BLACK_CYAN)
+                        stdscr.addstr(height-1, 0, " " * (width-1))
+                        stdscr.addstr(height-1, 1, footer)
+                        stdscr.attroff(BLACK_CYAN)
+                        stdscr.refresh()
+                        continue
+            if current_row == 3:
+                try:
+                    checkin_date = datetime.strptime(f"{checkin_day}-{checkin_month}-{checkin_year}", "%d-%m-%Y").date
+                except ValueError:
+                    footer = "Are you sure about this date? ԅ(≖‿≖ԅ)"
+                    current_row = 1
+                    continue
+                checkin_date_str = f"{checkin_year}-{checkin_month}-{checkin_day}"
+                try:
+                    checkout_date = datetime.strptime(f"{checkout_day}-{checkout_month}-{checkout_year}", "%d-%m-%Y").date
+                except ValueError:
+                    footer = "Are you sure about this date? ԅ(≖‿≖ԅ)"
+                    current_row = 2
+                    continue
+                checkout_date_str = f"{checkout_year}-{checkout_month}-{checkout_day}"
+                if checkin_date() >= checkout_date():
+                    footer = "Check for date paradox...(~_~;)"
+                    continue
+            if current_row == len(main_menu_items):
+                wrapper(reservations)
+        stdscr.refresh()
+
+def reservations(stdscr):
+    key = 0
+    current_row = 1
+    stdscr.clear()
+    stdscr.refresh()
+
+    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    CYAN = curses.color_pair(1)
+    BLACK_CYAN = curses.color_pair(2)
+
+    while True:
+        curses.curs_set(0)
+        height, width = stdscr.getmaxyx()
+
+        # Strings
+        title = "Welcome to Manage Reservations window, here you can manage reservations and confirm payments! "
+        footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
+
+        stdscr.attron(CYAN)
+        stdscr.addstr(height-(height), 1 , title)
+        stdscr.attroff(CYAN)
+
+        stdscr.attron(BLACK_CYAN)
+        stdscr.addstr(height-1, 0, " " * (width-1))
+        stdscr.addstr(height-1, 1, footer)
+        stdscr.attroff(BLACK_CYAN)
+
+        rectangle(stdscr, 1, 25, 2, 75)
+        rectangle(stdscr, 2, 25, 7, 41)
+        rectangle(stdscr, 2, 42, 7, 58)
+        rectangle(stdscr, 2, 59, 7, 75)
+        stdscr.attron(CYAN)
+        stdscr.addstr(1,46, " Our Rooms ")
+        stdscr.attroff(CYAN)
+        stdscr.addstr(3,26, "Basic Single")
+        stdscr.addstr(4,26, "Size: 12")
+        stdscr.addstr(5,26, "Price: 500kr")
+        stdscr.addstr(6,26, "No extra beds")
+        stdscr.addstr(3,43, "Basic Double")
+        stdscr.addstr(4,43, "Size: 15")
+        stdscr.addstr(5,43, "Price: 600kr")
+        stdscr.addstr(6,43, "Up to 1 exbeds")
+        stdscr.addstr(3,60, "Deluxe Double")
+        stdscr.addstr(4,60, "Size: 18")
+        stdscr.addstr(5,60, "Price: 700kr")
+        stdscr.addstr(6,60, "Up to 2 exbeds")
+        
+        main_menu_items = ["Make reservation", "Reservation history", "Confirm payment", "Back"]
+        for idx, element in enumerate(main_menu_items):
+            y = 1 + idx
+            if y == current_row:
+                stdscr.attron(BLACK_CYAN)
+                stdscr.addstr(y, 1, element)
+                stdscr.attroff(BLACK_CYAN)
+            else:
+                stdscr.addstr(y, 1, element)
+
+        key = stdscr.getch()
+        if key == curses.KEY_UP and current_row > 1:
+            current_row = current_row - 1
+        elif key == curses.KEY_DOWN and current_row < len(main_menu_items):
+            current_row = current_row + 1
+        elif key == 10:
+            if current_row == 1:
+                wrapper(make_reservation)
+            if current_row == 2:
+                pass
+            if current_row == 3:
+                pass
+            if current_row == 4:
+                wrapper(main)
+        stdscr.refresh()
+
 def customers_manage(stdscr):
     height, width = stdscr.getmaxyx()
     key = 0
@@ -184,30 +471,45 @@ def customers_manage(stdscr):
                 stdscr.addstr(9,abs(int(width/2)), f"Phone Number: {customer.contact_number}")
                 current_row = 1
                 title = "Update chosen customer to"
+                
+                first_name_box = Textbox(curses.newwin(1,30, 1, 13))
+                last_name_box = Textbox(curses.newwin(1,30, 2, 12))
+                day_box = Textbox(curses.newwin(1,3, 3,20))
+                month_box = Textbox(curses.newwin(1,3, 3,17))
+                year_box = Textbox(curses.newwin(1,5, 3,12))
+                address_box = Textbox(curses.newwin(1,40, 4, 10))
+                postal_code_box = Textbox(curses.newwin(1,11, 5, 14))
+                city_box = Textbox(curses.newwin(1,30, 6, 7))
+                country_box = Textbox(curses.newwin(1,20, 7, 10))
+                mail_box = Textbox(curses.newwin(1,40, 8, 9))
+                number_box = Textbox(curses.newwin(1,15, 9, 17))
+
                 while True:
                     stdscr.attron(CYAN)
                     stdscr.addstr(height-(height), 1 , title)
+                    stdscr.attroff(CYAN)
                     stdscr.attron(BLACK_CYAN)
                     stdscr.addstr(height-1, 0, " " * (width-1))
                     stdscr.addstr(height-1, 1, footer)
                     stdscr.attroff(BLACK_CYAN)
+                    stdscr.attron(CYAN)
                     try:
                         if not day:
                             pass
                     except UnboundLocalError:
-                        stdscr.addstr(3,int(width/2+13), "dd")
+                        stdscr.addstr(3,20, "dd")
                         day = ""
                     try:
                         if not month:
                             pass
                     except UnboundLocalError:
-                        stdscr.addstr(3,int(width/2+10), "mm")
+                        stdscr.addstr(3,17, "mm")
                         month = ""
                     try:
                         if not year:
                             pass
                     except UnboundLocalError:
-                        stdscr.addstr(3,int(width/2+5), "yyyy")
+                        stdscr.addstr(3,12, "yyyy")
                         year = ""
                     stdscr.attroff(CYAN)
                     old_values_str = "Old Values"
@@ -230,23 +532,24 @@ def customers_manage(stdscr):
                         current_row = current_row + 1
                     elif key == 10:
                         if current_row == 1:
-                            first_name_box = Textbox(curses.newwin(1,30, 1, 13))
+                            curses.curs_set(1)
                             first_name_box.edit()
+                            curses.curs_set(0)
                             new_first_name = first_name_box.gather()
                             customer.first_name = new_first_name.strip()
                         if current_row == 2:
-                            last_name_box = Textbox(curses.newwin(1,30, 2, 12))
+                            curses.curs_set(1)
                             last_name_box.edit()
+                            curses.curs_set(0)
                             new_last_name = last_name_box.gather()
                             customer.last_name = new_last_name.strip()
                         if current_row == 3:
-                            day_box = Textbox(curses.newwin(1,3, 3,20))
-                            month_box = Textbox(curses.newwin(1,3, 3,17))
-                            year_box = Textbox(curses.newwin(1,5, 3,12))
                             while True:
+                                curses.curs_set(1)
                                 year_box.edit()
+                                curses.curs_set(0)
                                 year = year_box.gather()
-                                year = year.replace(" ", "")
+                                year = year.strip()
                                 if year.isdigit() == True and len(year) == 4:
                                     break
                                 else:
@@ -258,9 +561,11 @@ def customers_manage(stdscr):
                                     stdscr.refresh()
                                     continue
                             while True:
+                                curses.curs_set(1)
                                 month_box.edit()
+                                curses.curs_set(0)
                                 month = month_box.gather()
-                                month = month.replace(" ", "")
+                                month = month.strip()
                                 if month.isdigit() == True:
                                     break
                                 else:
@@ -272,9 +577,11 @@ def customers_manage(stdscr):
                                     stdscr.refresh()
                                     continue
                             while True:
+                                curses.curs_set(1)
                                 day_box.edit()
+                                curses.curs_set(0)
                                 day = day_box.gather()
-                                day = day.replace(" ", "")
+                                day = day.strip()
                                 if day.isdigit() == True:
                                     bdate_str = f"{year}-{month}-{day}"
                                     customer.birth_date = bdate_str
@@ -288,33 +595,39 @@ def customers_manage(stdscr):
                                     stdscr.refresh()
                                     continue
                         if current_row == 4:
-                            address_box = Textbox(curses.newwin(1,40, 4, 10))
+                            curses.curs_set(1)
                             address_box.edit()
+                            curses.curs_set(0)
                             new_address = address_box.gather()
                             customer.street_address = new_address.strip()
                         if current_row == 5:
-                            postal_code_box = Textbox(curses.newwin(1,11, 5, 14))
+                            curses.curs_set(1)
                             postal_code_box.edit()
+                            curses.curs_set(0)
                             new_postal = postal_code_box.gather()
                             customer.postal_number = new_postal.strip()
                         if current_row == 6:
-                            city_box = Textbox(curses.newwin(1,30, 6, 7))
+                            curses.curs_set(1)
                             city_box.edit()
+                            curses.curs_set(0)
                             new_city = city_box.gather()
                             customer.city = new_city.strip()
                         if current_row == 7:
-                            country_box = Textbox(curses.newwin(1,20, 7, 10))
+                            curses.curs_set(1)
                             country_box.edit()
+                            curses.curs_set(0)
                             new_country = country_box.gather()
                             customer.country = new_country.strip()
                         if current_row == 8:
-                            mail_box = Textbox(curses.newwin(1,40, 8, 9))
+                            curses.curs_set(1)
                             mail_box.edit()
+                            curses.curs_set(0)
                             new_mail = mail_box.gather()
                             customer.mail = new_mail.strip()
                         if current_row == 9:
-                            number_box = Textbox(curses.newwin(1,15, 9, 17))
+                            curses.curs_set(1)
                             number_box.edit()
+                            curses.curs_set(0)
                             new_number = number_box.gather()
                             customer.contact_number = new_number.strip()
                         if current_row == 10:
@@ -357,12 +670,24 @@ def customers_register(stdscr):
     CYAN = curses.color_pair(1)
     BLACK_CYAN = curses.color_pair(2)
 
+    first_name_box = Textbox(curses.newwin(1,30, 1, 13))
+    last_name_box = Textbox(curses.newwin(1,30, 2, 12))
+    day_box = Textbox(curses.newwin(1,3, 3, 20))
+    month_box = Textbox(curses.newwin(1,3, 3, 17))
+    year_box = Textbox(curses.newwin(1,5, 3, 12))
+    address_box = Textbox(curses.newwin(1,40, 4, 10))
+    postal_code_box = Textbox(curses.newwin(1,11, 5, 14))
+    city_box = Textbox(curses.newwin(1,30, 6, 7))
+    country_box = Textbox(curses.newwin(1,20, 7, 10))
+    mail_box = Textbox(curses.newwin(1,40, 8, 9))
+    number_box = Textbox(curses.newwin(1,15, 9, 17))
+
     while True:
         curses.curs_set(0)
         height, width = stdscr.getmaxyx()
 
         # Strings
-        title = "Please fill the form to register a new customer "
+        title = "Please fill the form to register a new customer"
         try:
             if not footer:
                 pass
@@ -413,47 +738,52 @@ def customers_register(stdscr):
             current_row = current_row + 1
         elif key == 10:
             if current_row == 1:
-                first_name_box = Textbox(curses.newwin(1,30, 1, 13))
+                curses.curs_set(1)
                 first_name_box.edit()
+                curses.curs_set(0)
             if current_row == 2:
-                last_name_box = Textbox(curses.newwin(1,30, 2, 12))
+                curses.curs_set(1)
                 last_name_box.edit()
+                curses.curs_set(0)
             if current_row == 3:
-                day_box = Textbox(curses.newwin(1,3, 3, 20))
-                month_box = Textbox(curses.newwin(1,3, 3, 17))
-                year_box = Textbox(curses.newwin(1,5, 3, 12))
                 while True:
+                    curses.curs_set(1)
                     year_box.edit()
+                    curses.curs_set(0)
                     year = year_box.gather()
-                    year = year.replace(" ", "")
+                    year = year.strip()
                     if year.isdigit() == True and len(year) == 4:
                         break
                     else:
                         footer = "A year has to be 4 numbers ԅ(≖‿≖ԅ)"
                         stdscr.attron(BLACK_CYAN)
                         stdscr.addstr(height-1, 0, " " * (width-1))
-                        stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                        stdscr.addstr(height-1, 1, footer)
                         stdscr.attroff(BLACK_CYAN)
                         stdscr.refresh()
                         continue
                 while True:
+                    curses.curs_set(1)
                     month_box.edit()
+                    curses.curs_set(0)
                     month = month_box.gather()
-                    month = month.replace(" ", "")
+                    month = month.strip()
                     if month.isdigit() == True:
                         break
                     else:
                         footer = "A month has to be a number ԅ(≖‿≖ԅ)"
                         stdscr.attron(BLACK_CYAN)
                         stdscr.addstr(height-1, 0, " " * (width-1))
-                        stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                        stdscr.addstr(height-1, 1, footer)
                         stdscr.attroff(BLACK_CYAN)
                         stdscr.refresh()
                         continue
                 while True:
+                    curses.curs_set(1)
                     day_box.edit()
+                    curses.curs_set(0)
                     day = day_box.gather()
-                    day = day.replace(" ", "")
+                    day = day.strip()
                     if day.isdigit() == True:
                         footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ You should have some yummy coffee during break!"
                         break
@@ -461,28 +791,34 @@ def customers_register(stdscr):
                         footer = "A day has to be a number ԅ(≖‿≖ԅ)"
                         stdscr.attron(BLACK_CYAN)
                         stdscr.addstr(height-1, 0, " " * (width-1))
-                        stdscr.addstr(height-1, int((width/2)-(len(footer)/2)), footer)
+                        stdscr.addstr(height-1, 1, footer)
                         stdscr.attroff(BLACK_CYAN)
                         stdscr.refresh()
                         continue
             if current_row == 4:
-                address_box = Textbox(curses.newwin(1,40, 4, 10))
+                curses.curs_set(1)
                 address_box.edit()
+                curses.curs_set(0)
             if current_row == 5:
-                postal_code_box = Textbox(curses.newwin(1,11, 5, 14))
+                curses.curs_set(1)
                 postal_code_box.edit()
+                curses.curs_set(0)
             if current_row == 6:
-                city_box = Textbox(curses.newwin(1,30, 6, 7))
+                curses.curs_set(1)
                 city_box.edit()
+                curses.curs_set(0)
             if current_row == 7:
-                country_box = Textbox(curses.newwin(1,20, 7, 10))
+                curses.curs_set(1)
                 country_box.edit()
+                curses.curs_set(0)
             if current_row == 8:
-                mail_box = Textbox(curses.newwin(1,40, 8, 9))
+                curses.curs_set(1)
                 mail_box.edit()
+                curses.curs_set(0)
             if current_row == 9:
-                number_box = Textbox(curses.newwin(1,15, 9, 17))
+                curses.curs_set(1)
                 number_box.edit()
+                curses.curs_set(0)
             if current_row == 10:
                 try:
                     birthday = datetime.strptime(f"{day}-{month}-{year}", "%d-%m-%Y").date
@@ -493,49 +829,80 @@ def customers_register(stdscr):
                 bdate_str = f"{year}-{month}-{day}"
                 try:
                     first_name = first_name_box.gather()
+                    if first_name.strip() == "":
+                        current_row = 1
+                        footer = "Did you forget customers first name?! ԅ(≖‿≖ԅ)"
+                        continue
                 except UnboundLocalError:
                     current_row = 1
                     footer = "Did you forget customers first name?! ԅ(≖‿≖ԅ)"
                     continue
                 try:
                     last_name = last_name_box.gather()
+                    if last_name.strip() == "":
+                        current_row = 2
+                        footer = "Oh gosh, does he even have a family? ԅ(≖‿≖ԅ)"
+                        continue
                 except UnboundLocalError:
                     current_row = 2
                     footer = "Oh gosh, does he even have a family? ԅ(≖‿≖ԅ)"
                     continue
                 try:
                     address = address_box.gather()
+                    if address.strip() == "":
+                        current_row = 4
+                        footer = "Where does this one live? ԅ(≖‿≖ԅ)"
+                        continue
                 except UnboundLocalError:
                     current_row = 4
                     footer = "Where does this one live? ԅ(≖‿≖ԅ)"
                     continue
                 try:
                     postal_code = postal_code_box.gather()
+                    if postal_code.strip() == "":
+                        current_row = 5
+                        footer = "Postal Code! ԅ(≖‿≖ԅ)"
+                        continue
                 except UnboundLocalError:
                     current_row = 5
                     footer = "Postal Code! ԅ(≖‿≖ԅ)"
                     continue
                 try:
                     city = city_box.gather()
+                    if city.strip() == "":
+                        current_row = 6
+                        footer = "Can't find'em if we don't know the city! ԅ(≖‿≖ԅ)"
+                        continue
                 except UnboundLocalError:
                     current_row = 6
                     footer = "Can't find'em if we don't know the city! ԅ(≖‿≖ԅ)"
                     continue
                 try:
                     country = country_box.gather()
-                    country = country.strip()
+                    if country.strip() == "":
+                        current_row = 7
+                        footer = "Sad, has nowhere to belong to :c ԅ(≖‿≖ԅ)"
+                        continue
                 except UnboundLocalError:
                     current_row = 7
                     footer = "Sad, has nowhere to belong to :c ԅ(≖‿≖ԅ)"
                     continue
                 try:
                     mail = mail_box.gather()
+                    if mail.strip() == "":
+                        current_row = 8
+                        footer = "We need to spam that email with commercials. Mohaha! ԅ(≖‿≖ԅ)"
+                        continue
                 except UnboundLocalError:
                     current_row = 8
                     footer = "We need to spam that email with commercials. Mohaha! ԅ(≖‿≖ԅ)"
                     continue
                 try:
                     number = number_box.gather()
+                    if number.strip() == "":
+                        current_row = 9
+                        footer = "Don't forget phone number, those are sellworthy ԅ(≖‿≖ԅ)"
+                        continue
                 except UnboundLocalError:
                     current_row = 9
                     footer = "Don't forget phone number, those are sellworthy ԅ(≖‿≖ԅ)"
@@ -654,7 +1021,7 @@ def main(stdscr):
             if current_row == 1:
                 wrapper(customers)
             if current_row == 2:
-                pass
+                wrapper(reservations)
             if current_row == 3:
                 sys.exit()
         stdscr.refresh()
