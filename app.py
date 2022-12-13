@@ -7,7 +7,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, upgrade
 # General imports
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 import time
 
@@ -42,6 +42,7 @@ class Reservation(db.Model):
     check_in = db.Column(db.Date, unique=False, nullable=False)
     check_out = db.Column(db.Date, unique=False, nullable=False)
     extra_beds = db.Column(db.Integer, unique=False, nullable=False)
+    canceled = db.Column(db.Boolean, unique=False, nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
 
@@ -85,20 +86,54 @@ def CreateRooms():
         db.session.commit()
 
 # Functions for handling logic
+def FindReservation(checkin, checkout) -> int:
+    reservation_id = 0
+    result = Reservation.query.all()
+    for x in result:
+        if x.check_in == checkin and x.check_out == checkout:
+            reservation_id = x.id
+    return reservation_id
+
 def SearchRoom(checkin, checkout) -> list:
     room_query = Room.query.all()
     reservation_query = Reservation.query.all()
     free = True
     room_list = []
     for x in room_query:
+        free = True
         for y in reservation_query:
-            if y.id == x.id and (y.check_in <= checkin <= y.check_out or y.check_in <= checkout <= y.check_out):
-                free = False
-            else:
-                free = True
+            if y.room_id == x.id:
+                if y.check_in <= checkin <= y.check_out or y.check_in <= checkout <= y.check_out:
+                    free = False
         if free == True:
-            room_list.append(f"{x.room_name} ;{x.id}")
+            room_list.append(f"{x.room_name};{x.id}")
     return room_list
+
+def GenerateInvoice(checkin, checkout, room_price, reservation_id):
+    today = datetime.now()
+    deadline =  today + timedelta(days=10)
+    days = (checkout - checkin).days
+    to_pay = days * room_price
+    paid = False
+    invoice = Invoice()
+    invoice.to_pay = to_pay
+    invoice.date = today
+    invoice.deadline = deadline
+    invoice.is_paid = paid
+    invoice.reservation_id = reservation_id
+    db.session.add(invoice)
+    db.session.commit()
+
+def InsertReservation(checkin, checkout, extra, room_id, customer_id):
+    reservation = Reservation()
+    reservation.check_in = checkin
+    reservation.check_out = checkout
+    reservation.extra_beds = extra
+    reservation.canceled = False
+    reservation.room_id = room_id
+    reservation.customer_id = customer_id
+    db.session.add(reservation)
+    db.session.commit()
 
 def SearchCustomers(query) -> list:
     listan = []
@@ -437,9 +472,76 @@ def make_reservation(stdscr):
                                             stdscr.addstr(2, 13, f"{extra}")
                                 elif key == 10:
                                     if current_row == 1:
-                                        pass
+                                        key = 0
+                                        search_win = curses.newwin(10, 30, 1, abs(int(width/2)-15))
+                                        customer_search_box = Textbox(curses.newwin(1, 30, 1, abs(int(width/2))))
+                                        curses.curs_set(1)
+                                        customer_search_box.edit()
+                                        curses.curs_set(0)
+                                        search_current_row = 1
+                                        search_query = customer_search_box.gather()
+                                        search_query = search_query.strip()
+                                        search_results = SearchCustomers(search_query)
+                                        search_results.append("Back")
+                                        search_win.addstr(0,1, "Search results")
+                                        while True:
+                                            for idx, element in enumerate(search_results):
+                                                y = 1 + idx
+                                                if y == search_current_row:
+                                                    search_win.attron(BLACK_CYAN)
+                                                    search_win.addstr(y, 1, element)
+                                                    search_win.attroff(BLACK_CYAN)
+                                                else:
+                                                    search_win.addstr(y, 1, element)
+                                            search_win.refresh()
+                                            key = stdscr.getch()
+                                            if key == curses.KEY_UP and search_current_row > 1:
+                                                search_current_row = search_current_row - 1
+                                            elif key == curses.KEY_DOWN and search_current_row < len(search_results):
+                                                search_current_row = search_current_row + 1
+                                            elif key == 10:
+                                                if search_current_row != len(search_results):
+                                                    active_customer = search_results[search_current_row-1]
+                                                    parts = active_customer.split(";")
+                                                    update_id = parts[-1]
+                                                    customer = Customer.query.filter_by(id = update_id).first()
+                                                    active_customer_id = customer.id
+                                                    active_customer_name = f"{customer.first_name} {customer.last_name}"
+                                                    stdscr.addstr(1, 18, active_customer_name)
+                                                    search_win.clear()
+                                                    search_win.refresh()
+                                                    footer = "Nice choice $.$"
+                                                    break
+                                                if search_current_row == len(search_results):
+                                                    search_win.clear()
+                                                    search_win.refresh()
+                                                    break
                                     if current_row == 3:
-                                        pass
+                                        try:
+                                            stdscr.addstr(1, 30, f"{active_customer_id}")
+                                        except UnboundLocalError:
+                                            footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Make sure to choose customer ԅ(≖‿≖ԅ)"
+                                            current_row = 1
+                                            continue
+                                        InsertReservation(checkin_date_str, checkout_date_str, extra, room_id, active_customer_id)
+                                        time.sleep(2)
+                                        reservation_id = FindReservation(checkin_date, checkout_date)
+                                        room_price = 400
+                                        if room_id == "1":
+                                            room_price = 500
+                                        if room_id == "2":
+                                            room_price = 600
+                                        if room_id == "3":
+                                            room_price = 700
+                                        GenerateInvoice(checkin_date, checkout_date, room_price, reservation_id)
+                                        stdscr.attron(BLACK_CYAN)
+                                        footer = "Reserved SUCCESSFULLY! (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧"
+                                        stdscr.addstr(height-1, 0, " " * (width-1))
+                                        stdscr.addstr(height-1, 1, footer)
+                                        stdscr.attroff(BLACK_CYAN)
+                                        stdscr.refresh()
+                                        time.sleep(3)
+                                        wrapper(reservations)
                                     if current_row == 4:
                                         wrapper(main)
                         if current_row == len(available_rooms):
