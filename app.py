@@ -29,6 +29,7 @@ class Customer(db.Model):
     country = db.Column(db.String(20), unique=False, nullable=False)
     mail = db.Column(db.String(100), unique=False, nullable=True)
     contact_number = db.Column(db.String(15), unique=False, nullable=True)
+    deleted = db.Column(db.Boolean, unique=False, nullable=False)
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -86,6 +87,34 @@ def CreateRooms():
         db.session.commit()
 
 # Functions for handling logic
+def ListUnpaid() -> list:
+    unpaid_list = []
+    unpaid_invoices = Invoice.query.filter_by(is_paid = 0).order_by(Invoice.date).all()
+    for x in unpaid_invoices:
+        unpaid_list.append(f"{x.to_pay}kr to pay by {x.deadline} ID;{x.id}")
+    return unpaid_list
+
+def ListUpcoming() -> list:
+    active_reservations_list = []
+    today = datetime.now().date()
+    active_reservations = Reservation.query.filter_by(canceled = 0).order_by(Reservation.check_in).all()
+    for x in active_reservations:
+        if x.check_out >= today:
+            customer = Customer.query.filter_by(id = x.customer_id).first()
+            active_reservations_list.append(f"{customer.first_name} {customer.last_name} - From {x.check_in} to {x.check_out} ID;{x.id}")
+    return active_reservations_list
+
+def KillPastDeadline():
+    unpaid_invoices = Invoice.query.filter_by(is_paid = 0)
+    today = datetime.now().date()
+    for x in unpaid_invoices:
+        if today > x.deadline:
+            reservation = Reservation.query.filter_by(id = x.reservation_id).first()
+            reservation.canceled = True
+        db.session.commit()
+    print("\nSuccesfully canceled resevations past deadline. Initiating...")
+    time.sleep(2)
+
 def FindReservation(checkin, checkout) -> int:
     reservation_id = 0
     result = Reservation.query.all()
@@ -106,7 +135,7 @@ def SearchRoom(checkin, checkout) -> list:
                 if y.check_in <= checkin <= y.check_out or y.check_in <= checkout <= y.check_out:
                     free = False
         if free == True:
-            room_list.append(f"{x.room_name};{x.id}")
+            room_list.append(f"{x.room_name} ID;{x.id}")
     return room_list
 
 def GenerateInvoice(checkin, checkout, room_price, reservation_id):
@@ -139,8 +168,8 @@ def SearchCustomers(query) -> list:
     listan = []
     result = Customer.query.filter(Customer.last_name.contains(query)).all()
     for x in result:
-        if f"{x.last_name}".lower() == query.lower():
-            listan.append(f"{x.first_name} {x.last_name} ;{x.id}")
+        if f"{x.last_name}".lower() == query.lower() and x.deleted == False:
+            listan.append(f"{x.first_name} {x.last_name} ID;{x.id}")
     return listan
 
 def InsertCustomer(fname, lname, birthdate, address, postalcode, city, country, email, number):
@@ -158,6 +187,236 @@ def InsertCustomer(fname, lname, birthdate, address, postalcode, city, country, 
     db.session.commit()
 
 # Menu system
+def delete_customer(stdscr):
+    height, width = stdscr.getmaxyx()
+    key = 0
+    current_row = 1
+    stdscr.clear()
+    stdscr.refresh()
+    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    CYAN = curses.color_pair(1)
+    BLACK_CYAN = curses.color_pair(2)
+    search_tooltip = "You can only delete customers that don't have upcoming reservation, search by last name"
+    footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
+    stdscr.attron(CYAN)
+    stdscr.addstr(height-(height), 1, search_tooltip)
+    stdscr.attroff(CYAN)
+    stdscr.attron(BLACK_CYAN)
+    stdscr.addstr(height-1, 0, " " * (width-1))
+    stdscr.addstr(height-1, 1, footer)
+    stdscr.attroff(BLACK_CYAN)
+    stdscr.refresh()
+    search_box = Textbox(curses.newwin(1, 30, 1, 1))
+    curses.curs_set(1)
+    search_box.edit()
+    curses.curs_set(0)
+    search_query = search_box.gather()
+    search_query = search_query.strip()
+    main_menu_items = SearchCustomers(search_query)
+    main_menu_items.append("Back")
+    footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
+    stdscr.clear()
+    while True:
+        curses.curs_set(0)
+        
+        # Strings
+        title = "Your search results "
+
+        stdscr.attron(CYAN)
+        stdscr.addstr(height-(height), 1 , title)
+        stdscr.attroff(CYAN)
+
+        stdscr.attron(BLACK_CYAN)
+        stdscr.addstr(height-1, 0, " " * (width-1))
+        stdscr.addstr(height-1, 1, footer)
+        stdscr.attroff(BLACK_CYAN)
+        for idx, element in enumerate(main_menu_items):
+            y = 1 + idx
+            if y == current_row:
+                stdscr.attron(BLACK_CYAN)
+                stdscr.addstr(y, 1, element)
+                stdscr.attroff(BLACK_CYAN)
+            else:
+                stdscr.addstr(y, 1, element)
+
+        key = stdscr.getch()
+        if key == curses.KEY_UP and current_row > 1:
+            current_row = current_row - 1
+        elif key == curses.KEY_DOWN and current_row < len(main_menu_items):
+            current_row = current_row + 1
+        elif key == 10:
+            if current_row != len(main_menu_items):
+                active = main_menu_items[current_row-1]
+                parts = active.split(";")
+                update_id = parts[-1]
+                reservation_check = Reservation.query.filter_by(customer_id = update_id).all()
+                today = datetime.now().date()
+                invalid = False
+                for x in reservation_check:
+                    if x.check_out > today:
+                        invalid = True
+                if invalid == True:
+                    current_row = 1
+                    footer = "Oops, this customer has a active reservation"
+                    stdscr.refresh()
+                    continue
+                customer_del = Customer.query.filter_by(id = update_id).first()
+                customer_del.deleted = True
+                db.session.commit()
+                stdscr.attron(BLACK_CYAN)
+                footer = "Deletion confirmation SUCCESSFUL! (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧"
+                stdscr.addstr(height-1, 0, " " * (width-1))
+                stdscr.addstr(height-1, 1, footer)
+                stdscr.attroff(BLACK_CYAN)
+                stdscr.refresh()
+                time.sleep(3)
+                wrapper(customers)
+            if current_row == len(main_menu_items):
+                wrapper(customers)
+
+def confirm_payment(stdscr):
+    height, width = stdscr.getmaxyx()
+    key = 0
+    current_row = 1
+    stdscr.clear()
+    stdscr.refresh()
+    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    CYAN = curses.color_pair(1)
+    BLACK_CYAN = curses.color_pair(2)
+    search_tooltip = "Here is a list of unpaid reservation invoices"
+    footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
+    stdscr.attron(CYAN)
+    stdscr.addstr(height-(height), 1, search_tooltip)
+    stdscr.attroff(CYAN)
+    stdscr.attron(BLACK_CYAN)
+    stdscr.addstr(height-1, 0, " " * (width-1))
+    stdscr.addstr(height-1, 1, footer)
+    stdscr.attroff(BLACK_CYAN)
+    stdscr.refresh()
+    main_menu_items = ListUnpaid()
+    main_menu_items.append("Back")
+    stdscr.clear()
+    while True:
+        curses.curs_set(0)
+        
+        # Strings
+        title = "Your search results "
+        footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
+
+        stdscr.attron(CYAN)
+        stdscr.addstr(height-(height), 1 , title)
+        stdscr.attroff(CYAN)
+
+        stdscr.attron(BLACK_CYAN)
+        stdscr.addstr(height-1, 0, " " * (width-1))
+        stdscr.addstr(height-1, 1, footer)
+        stdscr.attroff(BLACK_CYAN)
+        for idx, element in enumerate(main_menu_items):
+            y = 1 + idx
+            if y == current_row:
+                stdscr.attron(BLACK_CYAN)
+                stdscr.addstr(y, 1, element)
+                stdscr.attroff(BLACK_CYAN)
+            else:
+                stdscr.addstr(y, 1, element)
+
+        key = stdscr.getch()
+        if key == curses.KEY_UP and current_row > 1:
+            current_row = current_row - 1
+        elif key == curses.KEY_DOWN and current_row < len(main_menu_items):
+            current_row = current_row + 1
+        elif key == 10:
+            if current_row != len(main_menu_items):
+                active = main_menu_items[current_row-1]
+                parts = active.split(";")
+                update_id = parts[-1]
+                invoice_paid = Invoice.query.filter_by(id = update_id).first()
+                invoice_paid.is_paid = True
+                db.session.commit()
+                stdscr.attron(BLACK_CYAN)
+                footer = "Payment confirmation SUCCESSFUL! (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧"
+                stdscr.addstr(height-1, 0, " " * (width-1))
+                stdscr.addstr(height-1, 1, footer)
+                stdscr.attroff(BLACK_CYAN)
+                stdscr.refresh()
+                time.sleep(3)
+                wrapper(reservations)
+            if current_row == len(main_menu_items):
+                wrapper(reservations)
+
+def cancel_reservation(stdscr):
+    height, width = stdscr.getmaxyx()
+    key = 0
+    current_row = 1
+    stdscr.clear()
+    stdscr.refresh()
+    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    CYAN = curses.color_pair(1)
+    BLACK_CYAN = curses.color_pair(2)
+    search_tooltip = "Here is a list of upcoming reservations, choose one to cancel it"
+    footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
+    stdscr.attron(CYAN)
+    stdscr.addstr(height-(height), 1, search_tooltip)
+    stdscr.attroff(CYAN)
+    stdscr.attron(BLACK_CYAN)
+    stdscr.addstr(height-1, 0, " " * (width-1))
+    stdscr.addstr(height-1, 1, footer)
+    stdscr.attroff(BLACK_CYAN)
+    stdscr.refresh()
+    main_menu_items = ListUpcoming()
+    main_menu_items.append("Back")
+    stdscr.clear()
+    while True:
+        curses.curs_set(0)
+        
+        # Strings
+        title = "Your search results "
+        footer = "(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧ Never give up! ԅ(≖‿≖ԅ)"
+
+        stdscr.attron(CYAN)
+        stdscr.addstr(height-(height), 1 , title)
+        stdscr.attroff(CYAN)
+
+        stdscr.attron(BLACK_CYAN)
+        stdscr.addstr(height-1, 0, " " * (width-1))
+        stdscr.addstr(height-1, 1, footer)
+        stdscr.attroff(BLACK_CYAN)
+        for idx, element in enumerate(main_menu_items):
+            y = 1 + idx
+            if y == current_row:
+                stdscr.attron(BLACK_CYAN)
+                stdscr.addstr(y, 1, element)
+                stdscr.attroff(BLACK_CYAN)
+            else:
+                stdscr.addstr(y, 1, element)
+
+        key = stdscr.getch()
+        if key == curses.KEY_UP and current_row > 1:
+            current_row = current_row - 1
+        elif key == curses.KEY_DOWN and current_row < len(main_menu_items):
+            current_row = current_row + 1
+        elif key == 10:
+            if current_row != len(main_menu_items):
+                active = main_menu_items[current_row-1]
+                parts = active.split(";")
+                update_id = parts[-1]
+                reservation_to_cancel = Reservation.query.filter_by(id = update_id).first()
+                reservation_to_cancel.canceled = True
+                db.session.commit()
+                stdscr.attron(BLACK_CYAN)
+                footer = "Cancel SUCCESSFUL! (ﾉ◕ヮ◕)ﾉ*:・ﾟ✧"
+                stdscr.addstr(height-1, 0, " " * (width-1))
+                stdscr.addstr(height-1, 1, footer)
+                stdscr.attroff(BLACK_CYAN)
+                stdscr.refresh()
+                time.sleep(3)
+                wrapper(reservations)
+            if current_row == len(main_menu_items):
+                wrapper(reservations)
+
 def make_reservation(stdscr):
     key = 0
     current_row = 1
@@ -524,7 +783,6 @@ def make_reservation(stdscr):
                                             current_row = 1
                                             continue
                                         InsertReservation(checkin_date_str, checkout_date_str, extra, room_id, active_customer_id)
-                                        time.sleep(2)
                                         reservation_id = FindReservation(checkin_date, checkout_date)
                                         room_price = 400
                                         if room_id == "1":
@@ -598,7 +856,7 @@ def reservations(stdscr):
         stdscr.addstr(5,60, "Price: 700kr")
         stdscr.addstr(6,60, "Up to 2 exbeds")
         
-        main_menu_items = ["Make reservation", "Reservation history", "Confirm payment", "Back"]
+        main_menu_items = ["Make reservation", "Cancel reservation", "Confirm payment", "Back"]
         for idx, element in enumerate(main_menu_items):
             y = 1 + idx
             if y == current_row:
@@ -617,9 +875,9 @@ def reservations(stdscr):
             if current_row == 1:
                 wrapper(make_reservation)
             if current_row == 2:
-                pass
+                wrapper(cancel_reservation)
             if current_row == 3:
-                pass
+                wrapper(confirm_payment)
             if current_row == 4:
                 wrapper(main)
         stdscr.refresh()
@@ -645,7 +903,9 @@ def customers_manage(stdscr):
     stdscr.attroff(BLACK_CYAN)
     stdscr.refresh()
     search_box = Textbox(curses.newwin(1, 30, 1, 1))
+    curses.curs_set(1)
     search_box.edit()
+    curses.curs_set(0)
     search_query = search_box.gather()
     search_query = search_query.strip()
     main_menu_items = SearchCustomers(search_query)
@@ -1177,7 +1437,7 @@ def customers(stdscr):
         stdscr.addstr(height-1, 1, footer)
         stdscr.attroff(BLACK_CYAN)
         
-        main_menu_items = ["Register a customer", "Update a customer", "Back"]
+        main_menu_items = ["Register a customer", "Update a customer", "Delete a customer", "Back"]
         for idx, element in enumerate(main_menu_items):
             y = 1 + idx
             if y == current_row:
@@ -1198,6 +1458,8 @@ def customers(stdscr):
             if current_row == 2:
                 wrapper(customers_manage)
             if current_row == 3:
+                wrapper(delete_customer)
+            if current_row == len(main_menu_items):
                 wrapper(main)
         stdscr.refresh()
 
@@ -1262,4 +1524,5 @@ if __name__  == "__main__":
         CreateRooms()
 
         # Program starts
+        KillPastDeadline()
         wrapper(main)
