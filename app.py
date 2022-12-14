@@ -183,6 +183,7 @@ def InsertCustomer(fname, lname, birthdate, address, postalcode, city, country, 
     customer.country = country.strip()
     customer.mail = email.strip()
     customer.contact_number = number.strip()
+    customer.deleted = False
     db.session.add(customer)
     db.session.commit()
 
